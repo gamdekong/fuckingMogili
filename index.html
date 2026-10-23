@@ -1,0 +1,116 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>무지개 글자 비행</title>
+  <style>
+    :root { color-scheme: dark; }
+    * { box-sizing: border-box; }
+    html, body {
+      margin: 0; width: 100%; height: 100%; overflow: hidden;
+      background: #000; font-family: system-ui, -apple-system, "Malgun Gothic", sans-serif;
+    }
+    #sky { position: fixed; inset: 0; overflow: hidden; background: #000; }
+    .word {
+      position: absolute; white-space: nowrap; font-weight: 900; line-height: 1;
+      user-select: none; pointer-events: none;
+      text-shadow: 0 0 8px currentColor, 0 0 22px currentColor;
+      will-change: transform;
+    }
+    .controls {
+      position: fixed; z-index: 2; top: 16px; left: 16px;
+      display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+      padding: 10px 12px; border: 1px solid #333; border-radius: 12px;
+      background: #090909d9; color: #eee; backdrop-filter: blur(8px);
+      font-size: 13px;
+    }
+    button {
+      border: 1px solid #555; border-radius: 8px; padding: 7px 11px;
+      background: #181818; color: white; cursor: pointer;
+    }
+    button:hover { background: #292929; }
+    .hint { color: #aaa; }
+    @media (prefers-reduced-motion: reduce) {
+      .word { animation-duration: 0s !important; }
+    }
+  </style>
+</head>
+<body>
+  <main id="sky" aria-label="검은 배경에서 무지개색 글자가 날아다니는 화면"></main>
+  <div class="controls">
+    <strong>🌈 무지개 글자 비행</strong>
+    <button id="toggle" type="button">멈추기</button>
+    <button id="more" type="button">글자 더 추가</button>
+    <span class="hint">글자 크기와 방향이 계속 바뀝니다</span>
+  </div>
+  <script>
+    const sky = document.querySelector('#sky');
+    const phrase = '모질이 병신';
+    const colors = ['#ff3b30', '#ff9500', '#ffd60a', '#32d74b', '#00c7be', '#0a84ff', '#bf5af2', '#ff2d55'];
+    let paused = false;
+    let items = [];
+    let last = performance.now();
+
+    function addWord() {
+      const el = document.createElement('span');
+      el.className = 'word';
+      el.textContent = phrase;
+      const size = 18 + Math.random() * 76;
+      const hueColor = colors[Math.floor(Math.random() * colors.length)];
+      el.style.fontSize = size + 'px';
+      el.style.color = hueColor;
+      sky.appendChild(el);
+      const w = Math.max(120, innerWidth * 0.25);
+      const h = Math.max(45, size * 1.5);
+      items.push({
+        el,
+        x: Math.random() * Math.max(1, innerWidth - w),
+        y: Math.random() * Math.max(1, innerHeight - h),
+        vx: (Math.random() - 0.5) * 2.4,
+        vy: (Math.random() - 0.5) * 2.1,
+        size, angle: Math.random() * 360,
+        spin: (Math.random() - 0.5) * 0.7
+      });
+    }
+
+    for (let i = 0; i < 18; i++) addWord();
+
+    function animate(now) {
+      const dt = Math.min(2, (now - last) / 16.67);
+      last = now;
+      if (!paused) {
+        for (const item of items) {
+          item.x += item.vx * dt;
+          item.y += item.vy * dt;
+          item.angle += item.spin * dt;
+          const rect = item.el.getBoundingClientRect();
+          const maxX = Math.max(0, innerWidth - rect.width);
+          const maxY = Math.max(0, innerHeight - rect.height);
+          if (item.x < 0 || item.x > maxX) item.vx *= -1;
+          if (item.y < 0 || item.y > maxY) item.vy *= -1;
+          item.x = Math.max(0, Math.min(maxX, item.x));
+          item.y = Math.max(0, Math.min(maxY, item.y));
+          item.el.style.transform = `translate(${item.x}px, ${item.y}px) rotate(${item.angle}deg)`;
+        }
+      }
+      requestAnimationFrame(animate);
+    }
+    requestAnimationFrame(animate);
+
+    document.querySelector('#toggle').addEventListener('click', e => {
+      paused = !paused;
+      e.currentTarget.textContent = paused ? '다시 움직이기' : '멈추기';
+    });
+    document.querySelector('#more').addEventListener('click', () => {
+      for (let i = 0; i < 6; i++) addWord();
+    });
+    window.addEventListener('resize', () => {
+      for (const item of items) {
+        item.x = Math.min(item.x, innerWidth - 30);
+        item.y = Math.min(item.y, innerHeight - 30);
+      }
+    });
+  </script>
+</body>
+</html>
